@@ -75,28 +75,34 @@ ports = ports.uniq.sort
 
 sn = Thread.new {analyse(iface, hosts.enumerate, ports)}
 
+
+max_pool = 30
 threads = []
 sockets = []
 host_t = []
 port_t = []
 
 sleep(1)
+
 for host in hosts.enumerate
   for port in ports
-    begin
-      if threads.length<50
+      threads.delete_if { |thr| thr.stop? }
+      if threads.length<max_pool
         threads << Thread.new(host,port) {
           |h,p|
-          s = connect(h, p, 1)
-          s.close()
+          begin
+            s = connect(h, p, 0.1)
+            s.close()
+          rescue Exception
+          end
         }
       else
-        s = connect(host, port, 1)
-        s.close()
+        begin
+          s = connect(host, port, 0.1)
+          s.close()
+        rescue Exception
+        end
       end
-    rescue Exception => e
-      b = ""
-    end
   end
 end
 
